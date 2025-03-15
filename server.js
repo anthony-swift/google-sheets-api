@@ -3,7 +3,6 @@ const { google } = require('googleapis');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const fs = require('fs');
 
 dotenv.config();
 const app = express();
@@ -12,9 +11,11 @@ app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Load Google Service Account Credentials
+// Load Google Service Account Credentials from Environment Variables
+const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+
 const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(fs.readFileSync('service-account.json', 'utf8')),
+    credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
@@ -22,7 +23,7 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // ✅ Test API Route
 app.get('/', (req, res) => {
-    res.send('Google Sheets API is running!');
+    res.send('✅ Google Sheets API is running on Vercel!');
 });
 
 // ✅ Read Data from Sheets
@@ -54,7 +55,7 @@ app.post('/write', async (req, res) => {
             requestBody: { values }
         });
 
-        res.json({ message: "Data written successfully" });
+        res.json({ message: "✅ Data written successfully" });
     } catch (error) {
         console.error("❌ Error writing data:", error);
         res.status(500).json({ error: error.message });
@@ -65,15 +66,15 @@ app.post('/write', async (req, res) => {
 app.post('/format', async (req, res) => {
     try {
         console.log("🟢 Received format request:", req.body);
-        const { spreadsheetId, sheetId, formatRequests } = req.body;
-        if (!spreadsheetId || !sheetId || !formatRequests) return res.status(400).json({ error: "Missing parameters" });
+        const { spreadsheetId, formatRequests } = req.body;
+        if (!spreadsheetId || !formatRequests) return res.status(400).json({ error: "Missing parameters" });
 
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
             requestBody: { requests: formatRequests }
         });
 
-        res.json({ message: "Cells formatted successfully" });
+        res.json({ message: "✅ Cells formatted successfully" });
     } catch (error) {
         console.error("❌ Error formatting cells:", error);
         res.status(500).json({ error: error.message });
@@ -94,7 +95,7 @@ app.post('/createSheet', async (req, res) => {
             }
         });
 
-        res.json({ message: `Sheet '${title}' created successfully` });
+        res.json({ message: `✅ Sheet '${title}' created successfully` });
     } catch (error) {
         console.error("❌ Error creating sheet:", error);
         res.status(500).json({ error: error.message });
@@ -115,7 +116,7 @@ app.post('/renameSheet', async (req, res) => {
             }
         });
 
-        res.json({ message: `Sheet renamed to '${newTitle}' successfully` });
+        res.json({ message: `✅ Sheet renamed to '${newTitle}' successfully` });
     } catch (error) {
         console.error("❌ Error renaming sheet:", error);
         res.status(500).json({ error: error.message });
@@ -142,101 +143,43 @@ app.get('/getSheets', async (req, res) => {
     }
 });
 
+// ✅ Add Chart
 app.post('/addChart', async (req, res) => {
-    console.log("🟢 Received addChart request:", JSON.stringify(req.body, null, 2));
-
     try {
+        console.log("🟢 Received addChart request:", req.body);
         const { spreadsheetId, sheetId, chartSpec } = req.body;
-
-        // Log values to check for missing parameters
-        console.log("🔍 Debugging Parameters:");
-        console.log("spreadsheetId:", spreadsheetId);
-        console.log("sheetId:", sheetId);
-        console.log("chartSpec:", JSON.stringify(chartSpec, null, 2));
-
-        if (!spreadsheetId || sheetId === undefined || !chartSpec) {
-            console.log("🔴 Missing parameters:", { spreadsheetId, sheetId, chartSpec });
-            return res.status(400).json({ error: "Missing parameters" });
-        }
+        if (!spreadsheetId || sheetId === undefined || !chartSpec) return res.status(400).json({ error: "Missing parameters" });
 
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            requestBody: {
-                requests: [{
-                    addChart: {
-                        chart: chartSpec, // ✅ Corrected structure
-                    }
-                }]
-            }
+            requestBody: { requests: [{ addChart: { chart: chartSpec } }] }
         });
 
-        res.json({ message: "Chart added successfully" });
+        res.json({ message: "✅ Chart added successfully" });
     } catch (error) {
         console.error("❌ Error adding chart:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-
-
 // ✅ Add Pivot Table
 app.post('/addPivotTable', async (req, res) => {
-    console.log("🟢 Received addPivotTable request:", JSON.stringify(req.body, null, 2));
-
     try {
-        let { spreadsheetId, sheetId, pivotTableSpec, destination } = req.body;
+        console.log("🟢 Received addPivotTable request:", req.body);
+        const { spreadsheetId, sheetId, pivotTableSpec } = req.body;
+        if (!spreadsheetId || sheetId === undefined || !pivotTableSpec) return res.status(400).json({ error: "Missing parameters" });
 
-        console.log("🔍 Debugging Parameters:");
-        console.log("spreadsheetId:", spreadsheetId);
-        console.log("sheetId:", sheetId);
-        console.log("pivotTableSpec:", JSON.stringify(pivotTableSpec, null, 2));
-        console.log("destination:", JSON.stringify(destination, null, 2));
-
-        if (!spreadsheetId || sheetId === undefined || !pivotTableSpec) {
-            console.log("🔴 Missing parameters:", { spreadsheetId, sheetId, pivotTableSpec });
-            return res.status(400).json({ error: "Missing parameters" });
-        }
-
-        // Ensure pivot table output is far from source data to avoid circular dependency
-        if (!destination || !destination.startRowIndex || !destination.startColumnIndex) {
-            console.log("🔵 Auto-assigning safe pivot table location at row 20, column E.");
-            destination = { sheetId, startRowIndex: 20, startColumnIndex: 4 }; // ✅ Default safe output location
-        }
-
-        const response = await sheets.spreadsheets.batchUpdate({
+        await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            requestBody: {
-                requests: [{
-                    addSheet: {
-                        properties: {
-                            title: `PivotTable_${Date.now()}` // ✅ Creates a new sheet to avoid overwriting
-                        }
-                    }
-                }, {
-                    updateCells: {
-                        start: {
-                            sheetId,
-                            rowIndex: destination.startRowIndex,
-                            columnIndex: destination.startColumnIndex
-                        },
-                        rows: [{
-                            values: [{
-                                pivotTable: pivotTableSpec
-                            }]
-                        }],
-                        fields: "pivotTable"
-                    }
-                }]
-            }
+            requestBody: { requests: [{ updateCells: { start: { sheetId }, rows: [{ values: [{ pivotTable: pivotTableSpec }] }], fields: "pivotTable" } }] }
         });
 
-        res.json({ message: "Pivot table added successfully", response: response.data });
+        res.json({ message: "✅ Pivot table added successfully" });
     } catch (error) {
         console.error("❌ Error adding pivot table:", error);
         res.status(500).json({ error: error.message });
     }
 });
-
 
 // ✅ Get Current Date & Time
 app.get('/getDateTime', (req, res) => {
@@ -244,5 +187,8 @@ app.get('/getDateTime', (req, res) => {
     res.json({ utc: now.toISOString(), local: now.toLocaleString() });
 });
 
-// Start Server
+// ✅ Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+
+// ✅ Export for Vercel Deployment
+module.exports = app;
