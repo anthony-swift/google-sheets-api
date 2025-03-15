@@ -21,16 +21,6 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-// Middleware to check for Vercel Protection Bypass
-app.use((req, res, next) => {
-    const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-    const requestSecret = req.headers["x-vercel-protection-bypass"];
-
-    if (!bypassSecret || requestSecret !== bypassSecret) {
-        return res.status(403).json({ error: "Unauthorized access. Provide correct bypass secret." });
-    }
-    next();
-});
 
 
 // ✅ Test API Route
