@@ -21,6 +21,19 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: 'v4', auth });
 
+// Middleware to authenticate requests using the Vercel secret key
+app.use((req, res, next) => {
+    const providedKey = req.headers['x-vercel-protection-bypass']; // Header key
+    const expectedKey = process.env.VERCEL_AUTOMATION_BYPASS_SECRET; // Read from Vercel env
+
+    if (!providedKey || providedKey !== expectedKey) {
+        return res.status(403).json({ error: "Unauthorized access" });
+    }
+    
+    next(); // Proceed to API routes
+});
+
+
 // ✅ Test API Route
 app.get('/', (req, res) => {
     res.send('✅ Google Sheets API is running on Vercel!');
