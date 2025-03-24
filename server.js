@@ -96,6 +96,43 @@ app.post('/refreshDirectory', async (req, res) => {
   }
 });
 
+// 🔄 Add or update a single row in the Directory sheet
+async function refreshDirectoryEntry(spreadsheetId, title, sheetId) {
+  const now = new Date().toLocaleString();
+
+  // Fetch current Directory contents
+  const getRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: 'Directory!A2:D1000'
+  });
+
+  const values = getRes.data.values || [];
+
+  // Check if sheet already exists in the directory
+  const index = values.findIndex(row => row[0] === title);
+
+  if (index !== -1) {
+    // 📝 Update existing row
+    values[index][1] = sheetId;
+    values[index][3] = now;
+  } else {
+    // ➕ Add new row
+    values.push([title, sheetId, '', now]);
+  }
+
+  // Write back
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: 'Directory!A2:D1000',
+    valueInputOption: 'RAW',
+    requestBody: {
+      values
+    }
+  });
+
+  console.log(`📘 Directory updated for: ${title}`);
+}
+
 
 // ✅ Read Data from Sheets
 app.post('/read', async (req, res) => {
@@ -152,25 +189,30 @@ app.post('/format', async (req, res) => {
     }
 });
 
-// ✅ Create a New Sheet
+// ✅ Create a New Sheet + Update Directory
 app.post('/createSheet', async (req, res) => {
-    try {
-        console.log("🟢 Received createSheet request:", req.body);
-        const { spreadsheetId, title } = req.body;
-        if (!spreadsheetId || !title) return res.status(400).json({ error: "Missing parameters" });
+  try {
+    console.log("🟢 Received createSheet request:", req.body);
+    const { spreadsheetId, title } = req.body;
+    if (!spreadsheetId || !title) return res.status(400).json({ error: "Missing parameters" });
 
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId,
-            requestBody: {
-                requests: [{ addSheet: { properties: { title } } }]
-            }
-        });
+    const createRes = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title } } }]
+      }
+    });
 
-        res.json({ message: `✅ Sheet '${title}' created successfully` });
-    } catch (error) {
-        console.error("❌ Error creating sheet:", error);
-        res.status(500).json({ error: error.message });
-    }
+    const sheetId = createRes.data.replies[0].addSheet.properties.sheetId;
+
+    // ✅ Update the Directory sheet with this new sheet
+    await refreshDirectoryEntry(spreadsheetId, title, sheetId);
+
+    res.json({ message: `Sheet '${title}' created successfully and Directory updated` });
+  } catch (error) {
+    console.error("❌ Error creating sheet:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ✅ Rename a Sheet
