@@ -1,0 +1,257 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Google Sheets API Proxy",
+    "description": "A proxy API for interacting with Google Sheets via Vercel-deployed Express endpoints.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://google-sheets-pmidhtlc1-anthony-swifts-projects.vercel.app"
+    }
+  ],
+  "paths": {
+    "/read": {
+      "post": {
+        "summary": "Read data from a Google Sheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "range": { "type": "string" }
+                },
+                "required": ["spreadsheetId", "range"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sheet data as a 2D array"
+          }
+        }
+      }
+    },
+    "/write": {
+      "post": {
+        "summary": "Write data to a Google Sheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "range": { "type": "string" },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                },
+                "required": ["spreadsheetId", "range", "values"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmation of write"
+          }
+        }
+      }
+    },
+    "/format": {
+      "post": {
+        "summary": "Format cells in a Google Sheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "sheetId": { "type": "integer" },
+                  "formatRequests": {
+                    "type": "array",
+                    "items": { "type": "object" }
+                  }
+                },
+                "required": ["spreadsheetId", "sheetId", "formatRequests"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Formatting success"
+          }
+        }
+      }
+    },
+    "/createSheet": {
+      "post": {
+        "summary": "Create a new sheet in a spreadsheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "title": { "type": "string" }
+                },
+                "required": ["spreadsheetId", "title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sheet creation success"
+          }
+        }
+      }
+    },
+    "/renameSheet": {
+      "post": {
+        "summary": "Rename a sheet in a spreadsheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "sheetId": { "type": "integer" },
+                  "newTitle": { "type": "string" }
+                },
+                "required": ["spreadsheetId", "sheetId", "newTitle"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sheet renamed"
+          }
+        }
+      }
+    },
+    "/getSheets": {
+      "get": {
+        "summary": "List sheets in a spreadsheet",
+        "parameters": [
+          {
+            "name": "spreadsheetId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sheet titles and IDs"
+          }
+        }
+      }
+    },
+    "/addChart": {
+      "post": {
+        "summary": "Add a chart to a sheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "sheetId": { "type": "integer" },
+                  "chartSpec": { "type": "object" }
+                },
+                "required": ["spreadsheetId", "sheetId", "chartSpec"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chart added"
+          }
+        }
+      }
+    },
+    "/addPivotTable": {
+      "post": {
+        "summary": "Add a pivot table to a sheet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" },
+                  "sheetId": { "type": "integer" },
+                  "pivotTableSpec": { "type": "object" },
+                  "destination": { "type": "object" }
+                },
+                "required": ["spreadsheetId", "sheetId", "pivotTableSpec"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pivot table added"
+          }
+        }
+      }
+    },
+    "/getDateTime": {
+      "get": {
+        "summary": "Get the current server date/time",
+        "responses": {
+          "200": {
+            "description": "Returns UTC and local time"
+          }
+        }
+      }
+    },
+    "/refreshDirectory": {
+      "post": {
+        "summary": "Refreshes the 'Directory' sheet with updated info on all other sheets",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spreadsheetId": { "type": "string" }
+                },
+                "required": ["spreadsheetId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Directory updated successfully"
+          }
+        }
+      }
+    }
+  }
+}
