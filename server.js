@@ -28,6 +28,75 @@ app.get('/', (req, res) => {
     res.send('✅ Google Sheets API is running on Vercel!');
 });
 
+// ✅ Refresh the Directory Sheet
+app.post('/refreshDirectory', async (req, res) => {
+  try {
+    const { spreadsheetId } = req.body;
+
+    if (!spreadsheetId) {
+      return res.status(400).json({ error: 'Missing spreadsheetId' });
+    }
+
+    // 1️⃣ Get all sheets
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetList = spreadsheet.data.sheets;
+
+    // 2️⃣ Check if 'Directory' exists
+    let directorySheet = sheetList.find(s => s.properties.title === 'Directory');
+
+    // 3️⃣ Create Directory sheet if it doesn't exist
+    if (!directorySheet) {
+      const createRes = await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: 'Directory',
+                }
+              }
+            }
+          ]
+        }
+      });
+
+      directorySheet = createRes.data.replies[0].addSheet;
+    }
+
+    const sheetId = directorySheet.properties.sheetId;
+
+    // 4️⃣ Build data to write
+    const rows = [
+      ['Title', 'Sheet ID', 'Description', 'Last Edited'], // header
+      ...sheetList
+        .filter(sheet => sheet.properties.title !== 'Directory')
+        .map(sheet => [
+          sheet.properties.title,
+          sheet.properties.sheetId,
+          '', // leave description blank for now
+          ''  // leave last edited blank for now
+        ])
+    ];
+
+    // 5️⃣ Write to 'Directory' sheet
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: 'Directory!A1:D' + rows.length,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: rows
+      }
+    });
+
+    res.json({ message: 'Directory refreshed successfully', count: rows.length - 1 });
+  } catch (error) {
+    console.error('❌ Error refreshing directory:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // ✅ Read Data from Sheets
 app.post('/read', async (req, res) => {
     try {
@@ -194,3 +263,5 @@ app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PO
 
 // ✅ Export for Vercel Deployment
 module.exports = app;
+
+
