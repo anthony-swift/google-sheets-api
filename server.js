@@ -156,11 +156,20 @@ app.post('/write', async (req, res) => {
         const { spreadsheetId, range, values } = req.body;
         if (!spreadsheetId || !range || !values) return res.status(400).json({ error: "Missing parameters" });
 
+        // Remove leading apostrophe from cells if the second character is '=' or a digit
+        const cleanedValues = values.map(row => row.map(cell => {
+            if (typeof cell === 'string' && cell.startsWith("'") && 
+                (cell[1] === '=' || !isNaN(parseInt(cell[1])))) {
+                return cell.slice(1);
+            }
+            return cell;
+        }));
+
         await sheets.spreadsheets.values.update({
             spreadsheetId,
             range,
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values }
+            requestBody: { values: cleanedValues }
         });
 
         res.json({ message: "✅ Data written successfully" });
@@ -169,7 +178,6 @@ app.post('/write', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 // ✅ Format Cells (Bold, Colors, etc.)
 app.post('/format', async (req, res) => {
     try {
