@@ -269,11 +269,111 @@ app.post('/addChart', async (req, res) => {
     try {
         console.log("🟢 Received addChart request:", req.body);
         const { spreadsheetId, sheetId, chartSpec } = req.body;
-        if (!spreadsheetId || sheetId === undefined || !chartSpec) return res.status(400).json({ error: "Missing parameters" });
+        if (!spreadsheetId || sheetId === undefined || !chartSpec) {
+            return res.status(400).json({ error: "Missing parameters" });
+        }
+
+        // Define a default chart configuration
+        const defaultChartSpec = {
+            spec: {
+                title: "Chart",
+                basicChart: {
+                    chartType: "LINE",
+                    legendPosition: "BOTTOM_LEGEND",
+                    axis: [
+                        { position: "BOTTOM_AXIS", title: "Date" },
+                        { position: "LEFT_AXIS", title: "Value" }
+                    ],
+                    domains: [
+                        {
+                            domain: {
+                                sourceRange: {
+                                    sources: [
+                                        {
+                                            sheetId: sheetId,
+                                            startRowIndex: 1,
+                                            endRowIndex: 8,
+                                            startColumnIndex: 0,
+                                            endColumnIndex: 1
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            series: {
+                                sourceRange: {
+                                    sources: [
+                                        {
+                                            sheetId: sheetId,
+                                            startRowIndex: 1,
+                                            endRowIndex: 8,
+                                            startColumnIndex: 2,
+                                            endColumnIndex: 3
+                                        }
+                                    ]
+                                }
+                            },
+                            targetAxis: "LEFT_AXIS"
+                        },
+                        {
+                            series: {
+                                sourceRange: {
+                                    sources: [
+                                        {
+                                            sheetId: sheetId,
+                                            startRowIndex: 1,
+                                            endRowIndex: 8,
+                                            startColumnIndex: 4,
+                                            endColumnIndex: 5
+                                        }
+                                    ]
+                                }
+                            },
+                            targetAxis: "LEFT_AXIS"
+                        }
+                    ]
+                }
+            },
+            position: {
+                overlayPosition: {
+                    anchorCell: {
+                        sheetId: sheetId,
+                        rowIndex: 10,
+                        columnIndex: 0
+                    },
+                    offsetXPixels: 0,
+                    offsetYPixels: 0,
+                    widthPixels: 600,
+                    heightPixels: 371
+                }
+            }
+        };
+
+        // Merge the incoming chartSpec with defaults (shallow merge)
+        // For deeper structures like 'spec.basicChart', we merge those objects too.
+        const completeChartSpec = {
+            ...defaultChartSpec,
+            ...chartSpec,
+            spec: {
+                ...defaultChartSpec.spec,
+                ...(chartSpec.spec || {}),
+                basicChart: {
+                    ...defaultChartSpec.spec.basicChart,
+                    ...((chartSpec.spec && chartSpec.spec.basicChart) || {})
+                }
+            },
+            position: {
+                ...defaultChartSpec.position,
+                ...chartSpec.position
+            }
+        };
 
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            requestBody: { requests: [{ addChart: { chart: chartSpec } }] }
+            requestBody: { requests: [{ addChart: { chart: completeChartSpec } }] }
         });
 
         res.json({ message: "✅ Chart added successfully" });
