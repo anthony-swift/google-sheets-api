@@ -3,6 +3,7 @@ const { google } = require('googleapis');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const axios = require('axios');
 
 dotenv.config();
 const app = express();
@@ -406,6 +407,43 @@ app.post('/addPivotTable', async (req, res) => {
 app.get('/getDateTime', (req, res) => {
     const now = new Date();
     res.json({ utc: now.toISOString(), local: now.toLocaleString() });
+});
+
+// ✅ Import the 20 most recent workouts from Hevy
+app.get('/importWorkouts', async (req, res) => {
+  try {
+    // Step 1: Call the Hevy API to fetch the 20 most recent workouts.
+    const hevyResponse = await axios.get('https://api.hevyapp.com/v2/workouts', {
+      params: { 
+        limit: 20
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer cf7b49db-ff4a-4c54-b1dc-91880902619c'
+      }
+    });
+    
+    // Assume hevyResponse.data is an array of workout objects.
+    const workouts = hevyResponse.data;
+
+    // Step 2: Format the data to match your Google Sheet columns.
+    // For example: Date | Workout Type | Duration (mins) | Estimated Calorie Burn | Notes
+    const formattedWorkouts = workouts.map(workout => {
+      return [
+        workout.date,       // Adjust property names based on Hevy API response structure
+        workout.type,
+        workout.duration,
+        workout.calories,
+        workout.notes
+      ];
+    });
+
+    // Step 3: Return the formatted data as JSON for review
+    res.json({ workouts: formattedWorkouts });
+  } catch (error) {
+    console.error("Error importing workouts from Hevy:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ✅ Start Server
