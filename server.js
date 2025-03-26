@@ -159,7 +159,7 @@ app.post('/write', async (req, res) => {
         await sheets.spreadsheets.values.update({
             spreadsheetId,
             range,
-            valueInputOption: 'RAW',
+            valueInputOption: 'USER_ENTERED',
             requestBody: { values }
         });
 
