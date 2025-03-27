@@ -409,43 +409,72 @@ app.get('/getDateTime', (req, res) => {
     res.json({ utc: now.toISOString(), local: now.toLocaleString() });
 });
 
-// ✅ Import the 20 most recent workouts from Hevy
+// New endpoint: Import the 20 most recent completed workouts
 app.get('/importWorkouts', async (req, res) => {
   try {
-    // Step 1: Call the Hevy API to fetch the 20 most recent workouts.
-    const hevyResponse = await axios.get('https://api.hevyapp.com/v2/workouts', {
-      params: { 
-        limit: 20
-      },
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer cf7b49db-ff4a-4c54-b1dc-91880902619c'
-      }
-    });
-    
-    // Assume hevyResponse.data is an array of workout objects.
-    const workouts = hevyResponse.data;
+    const pageSize = 9;
+    let page = 1;
+    let workouts = [];
+    let totalPages = 1;
 
-    // Step 2: Format the data to match your Google Sheet columns.
-    // For example: Date | Workout Type | Duration (mins) | Estimated Calorie Burn | Notes
-    const formattedWorkouts = workouts.map(workout => {
-      return [
-        workout.date,       // Adjust property names based on Hevy API response structure
-        workout.type,
-        workout.duration,
-        workout.calories,
-        workout.notes
-      ];
+    while (workouts.length < 20 && page <= totalPages) {
+      const response = await axios.get('https://api.hevyapp.com/v1/workouts', {
+        params: { page: page, pageSize: pageSize },
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.HEVY_API_KEY  // Securely accessed here
+        }
+      });
+      const data = response.data;
+      totalPages = data.page_count || 1;
+      workouts = workouts.concat(data.workouts || []);
+      page++;
+    }
+
+    const topWorkouts = workouts.slice(0, 20);
+
+    let allRows = [];
+    topWorkouts.forEach(workout => {
+      // Define a function formatWorkoutSets() as needed
+      const rows = formatWorkoutSets(workout);
+      allRows = allRows.concat(rows);
     });
 
-    // Step 3: Return the formatted data as JSON for review
-    res.json({ workouts: formattedWorkouts });
+    res.json({ workouts: allRows });
   } catch (error) {
-    console.error("Error importing workouts from Hevy:", error);
+    console.error("Error importing workouts:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
+// Example formatting function for workout sets (update as necessary)
+function formatWorkoutSets(workout) {
+  let rows = [];
+  const workoutId = workout.id || "N/A";
+  const workoutTitle = workout.title || "N/A";
+  const workoutDate = workout.created_at || "N/A";
+  if (Array.isArray(workout.exercises)) {
+    workout.exercises.forEach(exercise => {
+      const exerciseTitle = exercise.title || "N/A";
+      if (Array.isArray(exercise.sets)) {
+        exercise.sets.forEach((set, index) => {
+          rows.push([
+            workoutId,
+            workoutTitle,
+            workoutDate,
+            exerciseTitle,
+            index,
+            set.weight_kg || "N/A",
+            set.reps || "N/A",
+            set.duration_seconds || "N/A",
+            set.custom_metric || "N/A"
+          ]);
+        });
+      }
+    });
+  }
+  return rows;
+}
 // ✅ Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 

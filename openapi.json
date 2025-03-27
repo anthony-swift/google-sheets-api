@@ -1,19 +1,19 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Google Sheets API Proxy",
-    "description": "A proxy API for interacting with Google Sheets via Vercel-deployed Express endpoints.",
+    "title": "Google Sheets Proxy API",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "https://google-sheets-pmidhtlc1-anthony-swifts-projects.vercel.app"
+      "url": "https://google-sheets-d8kr9e2zp-anthony-swifts-projects.vercel.app"
     }
   ],
   "paths": {
     "/read": {
       "post": {
         "summary": "Read data from a Google Sheet",
+        "operationId": "readData",
         "requestBody": {
           "required": true,
           "content": {
@@ -30,15 +30,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Sheet data as a 2D array"
-          }
+          "200": { "description": "Data read from the sheet" }
         }
       }
     },
     "/write": {
       "post": {
         "summary": "Write data to a Google Sheet",
+        "operationId": "writeData",
         "requestBody": {
           "required": true,
           "content": {
@@ -62,15 +61,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Confirmation of write"
-          }
+          "200": { "description": "Data written successfully" }
         }
       }
     },
     "/format": {
       "post": {
         "summary": "Format cells in a Google Sheet",
+        "operationId": "formatCells",
         "requestBody": {
           "required": true,
           "content": {
@@ -78,11 +76,59 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "spreadsheetId": { "type": "string" },
-                  "sheetId": { "type": "integer" },
+                  "spreadsheetId": {
+                    "type": "string",
+                    "description": "The ID of the spreadsheet"
+                  },
+                  "sheetId": {
+                    "type": "integer",
+                    "description": "The numeric ID of the target sheet (not the title)"
+                  },
                   "formatRequests": {
                     "type": "array",
-                    "items": { "type": "object" }
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "repeatCell": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "object",
+                              "properties": {
+                                "sheetId": { "type": "integer" },
+                                "startRowIndex": { "type": "integer" },
+                                "endRowIndex": { "type": "integer" },
+                                "startColumnIndex": { "type": "integer" },
+                                "endColumnIndex": { "type": "integer" }
+                              },
+                              "required": ["sheetId", "startRowIndex", "endRowIndex"]
+                            },
+                            "cell": {
+                              "type": "object",
+                              "properties": {
+                                "userEnteredFormat": {
+                                  "type": "object",
+                                  "properties": {
+                                    "textFormat": {
+                                      "type": "object",
+                                      "properties": {
+                                        "bold": { "type": "boolean" }
+                                      },
+                                      "required": ["bold"]
+                                    }
+                                  },
+                                  "required": ["textFormat"]
+                                }
+                              },
+                              "required": ["userEnteredFormat"]
+                            },
+                            "fields": { "type": "string" }
+                          },
+                          "required": ["range", "cell", "fields"]
+                        }
+                      },
+                      "required": ["repeatCell"]
+                    }
                   }
                 },
                 "required": ["spreadsheetId", "sheetId", "formatRequests"]
@@ -91,15 +137,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Formatting success"
-          }
+          "200": { "description": "Cells formatted successfully" }
         }
       }
     },
     "/createSheet": {
       "post": {
-        "summary": "Create a new sheet in a spreadsheet",
+        "summary": "Create a new sheet",
+        "operationId": "createSheet",
         "requestBody": {
           "required": true,
           "content": {
@@ -116,15 +161,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Sheet creation success"
-          }
+          "200": { "description": "Sheet created successfully" }
         }
       }
     },
     "/renameSheet": {
       "post": {
-        "summary": "Rename a sheet in a spreadsheet",
+        "summary": "Rename a sheet",
+        "operationId": "renameSheet",
         "requestBody": {
           "required": true,
           "content": {
@@ -142,15 +186,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Sheet renamed"
-          }
+          "200": { "description": "Sheet renamed successfully" }
         }
       }
     },
     "/getSheets": {
       "get": {
-        "summary": "List sheets in a spreadsheet",
+        "summary": "Get list of sheets",
+        "operationId": "getSheets",
         "parameters": [
           {
             "name": "spreadsheetId",
@@ -160,15 +203,14 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "List of sheet titles and IDs"
-          }
+          "200": { "description": "Sheet list returned" }
         }
       }
     },
     "/addChart": {
       "post": {
         "summary": "Add a chart to a sheet",
+        "operationId": "addChart",
         "requestBody": {
           "required": true,
           "content": {
@@ -186,15 +228,14 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Chart added"
-          }
+          "200": { "description": "Chart added successfully" }
         }
       }
     },
     "/addPivotTable": {
       "post": {
-        "summary": "Add a pivot table to a sheet",
+        "summary": "Add a pivot table",
+        "operationId": "addPivotTable",
         "requestBody": {
           "required": true,
           "content": {
@@ -213,25 +254,23 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Pivot table added"
-          }
+          "200": { "description": "Pivot table added successfully" }
         }
       }
     },
     "/getDateTime": {
       "get": {
-        "summary": "Get the current server date/time",
+        "summary": "Get current UTC and local time",
+        "operationId": "getDateTime",
         "responses": {
-          "200": {
-            "description": "Returns UTC and local time"
-          }
+          "200": { "description": "Returns current datetime" }
         }
       }
     },
     "/refreshDirectory": {
       "post": {
-        "summary": "Refreshes the 'Directory' sheet with updated info on all other sheets",
+        "summary": "Refresh the Directory sheet",
+        "operationId": "refreshDirectory",
         "requestBody": {
           "required": true,
           "content": {
@@ -247,9 +286,7 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Directory updated successfully"
-          }
+          "200": { "description": "Directory refreshed" }
         }
       }
     }
